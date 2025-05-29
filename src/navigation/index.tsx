@@ -12,93 +12,107 @@ import LawyerDetailsScreen from '../screens/LawyerDetailsScreen';
 import AppointmentBookingScreen from '../screens/AppointmentBookingScreen';
 import MyAppointmentsScreen from '../screens/MyAppointmentsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
+  Register: undefined;
   Main: undefined;
   LawyerDetails: { lawyerId: string };
   AppointmentBooking: { lawyerId: string };
 };
 
-export type MainTabParamList = {
-  Home: undefined;
-  MyAppointments: undefined;
-  Profile: undefined;
-};
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const Tab = createBottomTabNavigator();
 
-const MainTabs = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
+const MainTabs = () => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      tabBarIcon: ({ focused, color, size }) => {
+        let iconName: keyof typeof Ionicons.glyphMap = 'home';
+        if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
+        else if (route.name === 'MyAppointments') iconName = focused ? 'calendar' : 'calendar-outline';
+        else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
+        return <Ionicons name={iconName} size={size} color={color} />;
+      },
+      tabBarActiveTintColor: '#007AFF',
+      tabBarInactiveTintColor: 'gray',
+    })}
+  >
+    <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' }} />
+    <Tab.Screen name="MyAppointments" component={MyAppointmentsScreen} options={{ title: 'Мои записи' }} />
+    <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Профиль' }} />
+  </Tab.Navigator>
+);
 
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'MyAppointments') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
+export default function Navigation() {
+  const { user, loading } = useAuth();
 
-          return <Ionicons name={iconName as any} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
-      })}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ title: 'Главная' }}
-      />
-      <Tab.Screen
-        name="MyAppointments"
-        component={MyAppointmentsScreen}
-        options={{ title: 'Мои записи' }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Профиль' }}
-      />
-    </Tab.Navigator>
-  );
-};
-
-const Navigation = () => {
-  const { user } = useAuth();
+  if (loading) {
+    return null;
+  }
 
   return (
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
-          headerShown: false,
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: '#fff',
+          },
+          headerTintColor: '#333',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
         }}
       >
         {!user ? (
-          <Stack.Screen name="Auth" component={AuthScreen} />
+          <>
+            <Stack.Screen 
+              name="Auth" 
+              component={AuthScreen}
+              options={{
+                title: 'Вход',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen 
+              name="Register" 
+              component={RegisterScreen}
+              options={{
+                title: 'Регистрация',
+                headerShown: true,
+              }}
+            />
+          </>
         ) : (
           <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen
-              name="LawyerDetails"
-              component={LawyerDetailsScreen}
-              options={{ headerShown: true, title: 'Информация о юристе' }}
+            <Stack.Screen 
+              name="Main" 
+              component={MainTabs}
+              options={{
+                headerShown: false,
+              }}
             />
-            <Stack.Screen
-              name="AppointmentBooking"
+            <Stack.Screen 
+              name="LawyerDetails" 
+              component={LawyerDetailsScreen}
+              options={{
+                title: 'Информация о юристе',
+                headerShown: true,
+              }}
+            />
+            <Stack.Screen 
+              name="AppointmentBooking" 
               component={AppointmentBookingScreen}
-              options={{ headerShown: true, title: 'Запись на консультацию' }}
+              options={{
+                title: 'Запись на консультацию',
+                headerShown: true,
+              }}
             />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
-};
-
-export default Navigation; 
+} 

@@ -1,13 +1,13 @@
-export type UserRole = 'client' | 'lawyer' | 'admin';
-
 export interface User {
   id: string;
   email: string;
-  role: 'client' | 'lawyer' | 'admin';
   full_name: string;
-  phone?: string;
-  created_at: string;
+  phone: string;
+  role: string;
+  created_at?: string;
 }
+
+export type UserRole = 'client' | 'lawyer' | 'admin';
 
 export interface Lawyer {
   id: string;

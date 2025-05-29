@@ -4,25 +4,29 @@ import { useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { MainTabParamList } from '../navigation';
+import { MainTabParamList } from '../navigation/types';
 
 type NavigationProp = BottomTabNavigationProp<MainTabParamList>;
+
+interface TimeSlot {
+  date: string;
+  start_time: string;
+  end_time: string;
+}
+
+interface Lawyer {
+  users: {
+    full_name: string;
+  };
+  specialization: string;
+}
 
 interface Appointment {
   id: string;
   status: string;
   created_at: string;
-  time_slot: {
-    date: string;
-    start_time: string;
-    end_time: string;
-  };
-  lawyer: {
-    users: {
-      full_name: string;
-    };
-    specialization: string;
-  };
+  time_slot: TimeSlot | null;
+  lawyer: Lawyer | null;
 }
 
 const MyAppointmentsScreen = () => {
@@ -44,37 +48,42 @@ const MyAppointmentsScreen = () => {
           id,
           status,
           created_at,
-          time_slot:time_slots (
-            date,
-            start_time,
-            end_time
-          ),
-          lawyer:lawyers (
-            users (
-              full_name
-            ),
+          time_slots (date, start_time, end_time),
+          lawyers (
+            users (full_name),
             specialization
           )
         `)
-        .eq('user_id', user?.id)
+        .eq('client_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
+      // Log the raw data to understand its structure if errors persist
+      console.log('Raw appointments data:', data);
+
       const formattedAppointments = (data || []).map(appointment => ({
         id: appointment.id,
         status: appointment.status,
         created_at: appointment.created_at,
-        time_slot: appointment.time_slot[0],
-        lawyer: {
-          ...appointment.lawyer[0],
-          users: appointment.lawyer[0].users[0]
-        }
+        // Access related data with optional chaining and provide default values
+        time_slot: appointment.time_slots && appointment.time_slots.length > 0 ? { // time_slots is expected to be a single object here
+          date: appointment.time_slots[0]?.date || 'Неизвестная дата',
+          start_time: appointment.time_slots[0]?.start_time || 'Неизвестное время',
+          end_time: appointment.time_slots[0]?.end_time || 'Неизвестное время',
+        } as TimeSlot : null,
+        lawyer: appointment.lawyers && appointment.lawyers.length > 0 ? { // lawyers is expected to be a single object here
+          users: appointment.lawyers[0]?.users && appointment.lawyers[0]?.users.length > 0 ? { // users is expected to be a single object here
+            full_name: appointment.lawyers[0]?.users[0]?.full_name || 'Неизвестный юрист'
+          } : null,
+          specialization: appointment.lawyers[0]?.specialization || 'Неизвестная специализация'
+        } as Lawyer : null,
       }));
-      
+
       setAppointments(formattedAppointments);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Произошла ошибка');
+      console.error('Error fetching appointments:', err);
+      setError(err instanceof Error ? err.message : 'Произошла ошибка при загрузке записей');
     } finally {
       setLoading(false);
     }
@@ -141,7 +150,7 @@ const MyAppointmentsScreen = () => {
             <View style={styles.appointmentCard}>
               <View style={styles.appointmentHeader}>
                 <Text style={styles.lawyerName}>
-                  {item.lawyer.users.full_name}
+                  {item.lawyer?.users?.full_name || 'Неизвестный юрист'}
                 </Text>
                 <Text
                   style={[
@@ -154,15 +163,15 @@ const MyAppointmentsScreen = () => {
               </View>
               
               <Text style={styles.specialization}>
-                {item.lawyer.specialization}
+                {item.lawyer?.specialization || 'Не указана специализация'}
               </Text>
               
               <View style={styles.timeContainer}>
                 <Text style={styles.date}>
-                  {new Date(item.time_slot.date).toLocaleDateString()}
+                  {item.time_slot?.date ? new Date(item.time_slot.date).toLocaleDateString() : 'Не указана дата'}
                 </Text>
                 <Text style={styles.time}>
-                  {item.time_slot.start_time} - {item.time_slot.end_time}
+                  {item.time_slot?.start_time && item.time_slot?.end_time ? `${item.time_slot.start_time} - ${item.time_slot.end_time}` : 'Не указано время'}
                 </Text>
               </View>
             </View>
